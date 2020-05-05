@@ -1,35 +1,78 @@
+import math
 import numpy as np
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 
+from .strike_args import *
+from .entity import *
+
 class StrikeEnv(gym.Env):
     metadata = {'render.modes': ['human']}
-    
+    """
+    Observation: 
+        Type: Box(4)
+        Num	Observation     Min             Max
+        0	phi             -4.8            4.8
+        1	psi_dot         -Inf            Inf
+        2	psi             -24 deg         24 deg
+        3	x               -Inf            Inf
+        4	y               -Inf            Inf
+        
+    Actions:
+        Type: Discrete(2)
+        Num	Action
+        0	Straight Flight
+        1	Turn Left
+        2   Turn Right
+    """
     def __init__(self):
-        self._x = 1
-        self.gravity = 9.8
-        self.tau = 0.1
-        self.x_lim = 10000
-        self.y_lim = 10000
+        high = np.array([math.pi,
+                         math.pi/2.0,
+                         np.finfo(np.float32).max,
+                         ARENA_X_LEN*10.0,
+                         ARENA_Y_LEN*10.0],
+                        dtype=np.float32)
+        self.action_space = spaces.Discrete(3)
+        self.observation_space = spaces.Box(-high, high, dtype=np.float32)
+        self.seed()
+        self.state = None
 
-        self.v = 100.0
+        self.uav = uav_t()
+        self.obstacle = obstacle_t()
     
     def step(self, action):
-        self._x += 1
-        reward = self._x + 5
-        done = True if self._x>10 else False 
-        return np.array([self._x]), reward, done, {}
+        self.state = self.uav.step(0)
+        reward = -0.5
+        if self.uav.x>ARENA_X_LEN/2.0 and abs(self.uav.y)<500:
+            reward += 1000
+        # done = True if self._x>10 else False
+        done = True if (self.uav.x>ARENA_X_LEN/2.0 and abs(self.uav.y)<500) or abs(self.uav.x>ARENA_X_LEN) or abs(self.uav.y>ARENA_X_LEN) or self.obstacle.is_in_range([self.uav.x,self.uav.y]) else False
+        if done:
+            reward -=300
+        
+
+        return np.array(self.state), reward, done, {}
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
     def reset(self):
-        return np.array([0.0])
+        # self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(5,))
+        # state variables
+        self.phi = 0.0
+        self.psi = 90.0*DEG2RAD
+        self.psi_dot = 0.0
+        self.x = 0#-ARENA_X_LEN/2.0+1000
+        self.y = 0.0
+
+        self.state = self.uav.reset()
+
+        return np.array(self.state)
     
     def render(self, mode='human'):
-        return None
+        pass
 
     def close(self):
-        return None
+        pass
