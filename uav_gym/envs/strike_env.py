@@ -8,10 +8,16 @@ class StrikeEnv(gym.Env):
     
     def __init__(self):
         self._x = 1
+        self.gravity = 9.8
+        self.tau = 0.1
+        self.x_lim = 10000
+        self.y_lim = 10000
+
+        self.v = 100.0
     
     def step(self, action):
         self._x += 1
-        reward = self._x + 2
+        reward = self._x + 5
         done = True if self._x>10 else False 
         return np.array([self._x]), reward, done, {}
 

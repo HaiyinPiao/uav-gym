@@ -1,0 +1,8 @@
+import math
+
+DEG2RAD = math.pi/180.0
+ARENA_X_LEN = 10000.0
+ARENA_Y_LEN = 10000.0
+
+GRAVITY = 9.8
+TAU = 0.13
