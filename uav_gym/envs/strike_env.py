@@ -42,14 +42,21 @@ class StrikeEnv(gym.Env):
         self.obstacle = obstacle_t()
     
     def step(self, action):
-        self.state = self.uav.step(0)
+        self.state = self.uav.step(action)
         reward = -0.5
-        if self.uav.x>ARENA_X_LEN/2.0 and abs(self.uav.y)<500:
+        done = False
+        if self.uav.x>4000 and abs(self.uav.y)<1000:
             reward += 1000
+            done = True
         # done = True if self._x>10 else False
-        done = True if (self.uav.x>ARENA_X_LEN/2.0 and abs(self.uav.y)<500) or abs(self.uav.x>ARENA_X_LEN) or abs(self.uav.y>ARENA_X_LEN) or self.obstacle.is_in_range([self.uav.x,self.uav.y]) else False
-        if done:
-            reward -=300
+        if self.obstacle.is_in_range([self.uav.x,self.uav.y]):
+            reward -= 400
+            done = True
+        # done = False
+        # done = True if ((self.uav.x>4000 and abs(self.uav.y)<1000) or abs(self.uav.x>ARENA_X_LEN) or abs(self.uav.y>ARENA_X_LEN) or self.obstacle.is_in_range([self.uav.x,self.uav.y])) else False
+        # done = True if (self.uav.x>4000 and abs(self.uav.y)<1000) or abs(self.uav.x)>ARENA_X_LEN or abs(self.uav.y)>ARENA_X_LEN else False
+        # if done:
+        #     reward -=300
         
 
         return np.array(self.state), reward, done, {}

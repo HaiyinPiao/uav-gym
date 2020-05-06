@@ -1,4 +1,4 @@
-from .strike_args import *
+from strike_args import *
 import numpy as np
 
 # from mpl_toolkits.mplot3d import axes3d
@@ -44,7 +44,7 @@ class uav_t(entity_t):
             # print(self.phi)
             self.phi += sign*self.phi_dot_lim*TAU
             self.phi = np.clip(self.phi, -self.phi_lim, self.phi_lim)
-            print(self.phi)
+            # print(self.phi)
         self.psi_dot = (GRAVITY/self.v)*math.tan(self.phi)
         self.psi += self.psi_dot*TAU
         self.x += self.v*math.sin(self.psi)*TAU
@@ -73,7 +73,7 @@ class obstacle_t(entity_t):
     def __init__(self):
         self.x = 2500.0
         self.y = 0.0
-        self.r = 1500.0
+        self.r = 500.0
     
     def step(self, action):
         pass
