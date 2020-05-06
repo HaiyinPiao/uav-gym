@@ -27,23 +27,27 @@ class StrikeEnv(gym.Env):
         2   Turn Right
     """
     def __init__(self):
+        self.uav = uav_t()
+        self.obstacle = obstacle_t()
+
         high = np.array([math.pi,
                          math.pi/2.0,
                          np.finfo(np.float32).max,
                          ARENA_X_LEN*10.0,
                          ARENA_Y_LEN*10.0],
                         dtype=np.float32)
-        self.action_space = spaces.Discrete(3)
+        self.action_space = spaces.Discrete(len(self.uav.avail_phi))
         self.observation_space = spaces.Box(-high, high, dtype=np.float32)
         self.seed()
         self.state = None
-
-        self.uav = uav_t()
-        self.obstacle = obstacle_t()
     
     def step(self, action):
+        _x = self.uav.x
         self.state = self.uav.step(action)
+        x_ = self.uav.x
         reward = -0.5
+        if(x_>_x):
+            reward+=0.5
         done = False
         if self.uav.x>4000 and abs(self.uav.y)<1000:
             reward += 1000

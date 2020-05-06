@@ -1,4 +1,4 @@
-from strike_args import *
+from .strike_args import *
 import numpy as np
 
 # from mpl_toolkits.mplot3d import axes3d
@@ -28,6 +28,11 @@ class uav_t(entity_t):
         self.x = 0#-ARENA_X_LEN/2.0+1000
         self.y = 0.0
 
+        # action mapping
+        self.avail_phi = np.arange(-70.0,70.0,10.0)
+        self.avail_phi *= DEG2RAD
+        # print(self.avail_phi)
+
         self.reset()
 
         self.x_traj = []
@@ -35,16 +40,26 @@ class uav_t(entity_t):
     
     def step(self, action):
         """
-        action=0: straight flight
-        action=1: turn left
-        action=2: turn right
+        action=0: -70 phi
+        action=1: -60 phi
+        action=2: -50 phi
+        ... ...
+        action=13: +70 phi
         """
-        if action>0:
-            sign = -1.0 if action is 1 else 1.0
-            # print(self.phi)
-            self.phi += sign*self.phi_dot_lim*TAU
-            self.phi = np.clip(self.phi, -self.phi_lim, self.phi_lim)
-            # print(self.phi)
+        # if action>0:
+        #     sign = -1.0 if action is 1 else 1.0
+        #     # print(self.phi)
+        #     self.phi += sign*self.phi_dot_lim*TAU
+        #     self.phi = np.clip(self.phi, -self.phi_lim, self.phi_lim)
+        #     # print(self.phi)
+        phi_c = self.avail_phi[action]
+        sign = -1.0 if phi_c<0.0 else 1.0
+        self.phi += sign*self.phi_dot_lim*TAU
+        if sign>0:
+            self.phi = np.clip(self.phi, 0, phi_c)
+        else:
+            self.phi = np.clip(self.phi, phi_c, 0)
+
         self.psi_dot = (GRAVITY/self.v)*math.tan(self.phi)
         self.psi += self.psi_dot*TAU
         self.x += self.v*math.sin(self.psi)*TAU
@@ -73,7 +88,7 @@ class obstacle_t(entity_t):
     def __init__(self):
         self.x = 2500.0
         self.y = 0.0
-        self.r = 500.0
+        self.r = 1000.0
     
     def step(self, action):
         pass
@@ -94,9 +109,9 @@ if __name__ == "__main__":
         if i<70:
             action = 0
         elif i>=70 and i<140:
-            action = 1
+            action = 3
         else:
-            action = 2
+            action = 13
         uav.step(action)
 
     entities = []
