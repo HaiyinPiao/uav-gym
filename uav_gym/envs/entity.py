@@ -12,13 +12,16 @@ class entity_t():
     def step(self, action):
         pass
     def is_movable(self):
-        return False
+        pass
+    def is_alive(self):
+        pass
 
 class uav_t(entity_t):
     def __init__(self):
         self.v = 100.0
         self.phi_dot_lim = 28.0*DEG2RAD
         self.phi_lim = 77.0*DEG2RAD
+        self.alive = True
         
         # state variables
         self.phi = 0.0
@@ -35,8 +38,8 @@ class uav_t(entity_t):
 
         self.reset()
 
-        self.x_traj = []
-        self.y_traj = []
+        # self.x_traj = []
+        # self.y_traj = []
     
     def step(self, action):
         """
@@ -65,33 +68,53 @@ class uav_t(entity_t):
         self.x += self.v*math.sin(self.psi)*TAU
         self.y += self.v*math.cos(self.psi)*TAU
         # print(self.x, self.y)
-        self.x_traj.append(self.x)
-        self.y_traj.append(self.y)
+        # self.x_traj.append(self.x)
+        # self.y_traj.append(self.y)
 
-        return (self.phi, self.psi_dot, self.psi, self.x, self.y)
+        return (float(self.alive), self.phi, self.psi_dot, self.psi, self.x, self.y)
 
-    def reset(self):
-        self.phi = 0.0
-        self.psi = 90.0*DEG2RAD
-        self.psi_dot = 0.0
-        self.x = 0#-ARENA_X_LEN/2.0+1000
-        self.y = 0.0
+    def reset(self, phi=0.0, psi_dot=0.0, psi=90.0*DEG2RAD, x=0.0, y=0.0):
+        self.alive = True
+        self.phi = phi
+        self.psi_dot = psi_dot
+        self.psi = psi
+        self.x = x
+        self.y = y
 
-        self.state = (self.phi, self.psi_dot, self.psi, self.x, self.y)
+        self.state = (float(self.alive), self.phi, self.psi_dot, self.psi, self.x, self.y)
 
         return self.state
 
     def is_movable(self):
         return True
 
+    def is_alive(self):
+        return self.alive
+
 class obstacle_t(entity_t):
     def __init__(self):
-        self.x = 2500.0
-        self.y = 0.0
-        self.r = 1000.0
+        self.alive = True
+        self.x = x
+        self.y = y
+        self.r = r
     
-    def step(self, action):
-        pass
+    def step(self, uavs:[]):
+        for v in uavs:
+            if self.is_alive and self.is_in_range([v.x,v.y]):
+                reward+=200
+                self.alive = False
+
+        return (float(self.alive), self.x, self.y, self.r)
+
+    def reset(self, x:float, y:float, r:float):
+        self.alive = True
+        self.x = x
+        self.y = y
+        self.r = r
+
+        self.state = (float(self.alive), self.x, self.y, self.r)
+
+        return self.state
 
     def is_movable(self):
         return False
@@ -101,6 +124,9 @@ class obstacle_t(entity_t):
         pivot = [self.x,self.y]
         range = math.sqrt(sum([(a - b)**2 for (a,b) in zip(pos,pivot)]))
         return True if range<self.r else False
+
+    def is_alive(self):
+        return self.alive
 
 
 if __name__ == "__main__":
@@ -137,9 +163,8 @@ if __name__ == "__main__":
     plt.axis([-5000,5000,-5000,5000])
     plt.plot(uav.x_traj,uav.y_traj)
 
-    circle = mpathes.Circle(np.array([2500,0]),1500,facecolor= 'red', alpha=0.3)
+    circle = mpathes.Circle(np.array([2500,2500]),500,facecolor= 'red', alpha=0.3)
     ax.add_patch(circle)
-
 
     plt.show()
 
