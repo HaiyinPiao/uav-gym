@@ -6,19 +6,11 @@ from gym.utils import seeding
 
 from .strike_args import *
 from .entity import *
+from .logplot import *
 
 class StrikeEnv(gym.Env):
     metadata = {'render.modes': ['human']}
-    """
-    Observation: 
-        Type: Box(4)
-        Num	Observation     Min             Max
-        0	phi             -4.8            4.8
-        1	psi_dot         -Inf            Inf
-        2	psi             -24 deg         24 deg
-        3	x               -Inf            Inf
-        4	y               -Inf            Inf
-        
+    """ 
     Actions:
         ref class uav_t(entity_t).step(self, action)
         relative observation
@@ -50,30 +42,49 @@ class StrikeEnv(gym.Env):
         self.observation_space = spaces.Box(-high, high, dtype=np.float32)
         self.seed()
         self.state = None
+
     
     def step(self, action):
         # self.state = self.uav.step(action)
+        done = False
         state = np.array([])
         for v in self.uavs:
-            s = v.step(action)
+            s, _ = v.step(action)
             state = np.concatenate((self.state, np.array(s)))
         
-        reward = -0.5
-        done = False
+        reward = -0.2
         # if self.uav.x>4000 and abs(self.uav.y)<1000:
         #     reward += 1000
         #     done = True
+        tgts_status = []
 
-        for v in self.uavs:
-            for t in self.targets:
-                if t.is_alive:
-                    if t.is_in_range([v.x,v.y]):
-                        reward+=200
-                        self.targets.alive = False
-                else:
+
+        for t in self.targets:
+            if t.is_alive:
+                s,r = t.step(self.uavs)
+                reward += r
+                state = np.concatenate((state, np.array(s)))
+            else:
+                # zeros nest state while alive==false
+                state = np.zeros_like(s)
+            tgts_status.append(t.is_alive)
                     
+        self.state = state.tolist()
 
-        self.state = state.to_list()
+        # done judgement
+        # judge if all targets eliminated
+        all_tgts_clr = tgts_status.count(False) is len(self.targets)
+        
+        # judge if *ANY* drone fly Out-Of-Border(OOB)
+        OOBs = []
+        for v in self.uavs:
+            OOBs.append(abs(v.x)>ARENA_X_LEN or abs(v.y)>ARENA_Y_LEN)
+        any_uav_out = OOBs.count(True)>0
+                
+        done = all_tgts_clr or any_uav_out
+
+        # uavs trajectories logging
+        self.vis.log(self.uavs, self.targets)
 
         return state, reward, done, {}
 
@@ -96,14 +107,16 @@ class StrikeEnv(gym.Env):
             s = np.array(v.reset())
             state = np.concatenate((state, np.array(s)))
 
-        s = self.targets[0].reset(3000,3000,500)
+        s = self.targets[0].reset(3000,3000,1000)
         state = np.concatenate((state, np.array(s)))
-        s = self.targets[0].reset(-3000,-3000,500)
+        s = self.targets[1].reset(-3000,-3000,1000)
         state = np.concatenate((state, np.array(s)))
-        s = self.targets[0].reset(0,2000,500)
+        s = self.targets[2].reset(0,2000,1000)
         state = np.concatenate((state, np.array(s)))
 
-        self.state = state.to_list()
+        self.state = state.tolist()
+
+        self.vis = plot_t(self.uavs, self.targets)
 
         return state
     
@@ -111,7 +124,9 @@ class StrikeEnv(gym.Env):
         pass
 
     def close(self):
-        pass
+        #render
+        if RENDER:
+            self.vis.plot()
 
 if __name__ == "__main__":
     env = StrikeEnv()
