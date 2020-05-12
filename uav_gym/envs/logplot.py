@@ -24,7 +24,7 @@ class plot_t():
     def plot(self):
         fig = plt.figure()
         plt.axis('equal')
-        ax = fig.add_subplot(111)
+        ax = fig.add_subplot()
         plt.axis([-ARENA_X_LEN/2,ARENA_X_LEN/2,-ARENA_Y_LEN/2,ARENA_Y_LEN/2])
         # print(self.tgts_circs)
         for t in self.tgts_circs:

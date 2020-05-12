@@ -71,8 +71,9 @@ class uav_t(entity_t):
         # self.x_traj.append(self.x)
         # self.y_traj.append(self.y)
         reward = 0.0
+        done = False
 
-        return (float(self.alive), self.phi, self.psi_dot, self.psi, self.x, self.y), reward
+        return (float(self.alive), self.phi, self.psi_dot, self.psi, self.x, self.y), reward, done, {}
 
     def reset(self, phi=0.0, psi_dot=0.0, psi=90.0*DEG2RAD, x=0.0, y=0.0):
         self.alive = True
@@ -101,12 +102,14 @@ class obstacle_t(entity_t):
     
     def step(self, uavs:[]):
         reward = 0.0
+        done = False
         for v in uavs:
             if self.is_alive and self.is_in_range([v.x,v.y]):
-                reward += 200
-                self.alive = False
+                reward += 500
+                # self.alive = False
+                done = True
 
-        return (float(self.alive), self.x, self.y, self.r), reward
+        return (float(self.alive), self.x, self.y, self.r), reward, done, {}
 
     def reset(self, x:float, y:float, r:float):
         self.alive = True

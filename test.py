@@ -5,9 +5,9 @@ env = gym.make("uav_gym:strike-v0")
 observation = env.reset()
 r_e = 0
 action = 0
-for t in range(800):
+for t in range(1500):
     # env.render()
-    if t%40==0:
+    if t%100==0:
         action = env.action_space.sample() # your agent here (this takes random actions)
     observation, reward, done, info = env.step(action)
     # print(observation, reward)
