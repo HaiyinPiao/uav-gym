@@ -10,8 +10,8 @@ for t in range(1500):
     if t%100==0:
         action = env.action_space.sample() # your agent here (this takes random actions)
     observation, reward, done, info = env.step(action)
-    # print(observation, reward)
-    # print(reward)
+    # print(observation.shape, reward)
+    # print(observation.shape)
     r_e += reward
     if done:
         # observation = env.reset()

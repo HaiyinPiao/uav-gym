@@ -50,7 +50,7 @@ class StrikeEnv(gym.Env):
         state = np.array([])
         for v in self.uavs:
             s, _, _, _ = v.step(action)
-            state = np.concatenate((self.state, np.array(s)))
+            state = np.concatenate((state, np.array(s)))
         
         reward = -0.2
         # if self.uav.x>4000 and abs(self.uav.y)<1000:
@@ -60,15 +60,16 @@ class StrikeEnv(gym.Env):
 
 
         for t in self.targets:
+            s, r, done, _ = t.step(self.uavs)
             if t.is_alive:
-                s, r, done, _ = t.step(self.uavs)
                 reward += r
                 if done:
                     t.is_alive = False
                 state = np.concatenate((state, np.array(s)))
             else:
                 # zeros nest state while alive==false
-                state = np.zeros_like(s)
+                s0 = np.zeros_like(s)
+                state = np.concatenate((state, np.array(s0)))
             tgts_status.append(t.is_alive)
                     
         self.state = state.tolist()

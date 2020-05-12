@@ -7,4 +7,4 @@ ARENA_Y_LEN = 10000.0
 GRAVITY = 9.8
 TAU = 0.13
 
-RENDER = False
+RENDER = True
