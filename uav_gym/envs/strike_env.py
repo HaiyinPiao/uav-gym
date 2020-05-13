@@ -49,49 +49,56 @@ class StrikeEnv(gym.Env):
     
     def step(self, action):
         # self.state = self.uav.step(action)
-        state = np.array([])
-        for v in self.uavs:
-            s, _, _, _ = v.step(action)
-            state = np.concatenate((state, np.array(s)))
+        reward = 0.0
+        done = False
         
-        reward = -0.2
-        # if self.uav.x>4000 and abs(self.uav.y)<1000:
-        #     reward += 1000
-        #     done = True
-        tgts_status = []
-
-        for t in self.targets:
-            s, r, clr, _ = t.step(self.uavs)
-            if t.is_alive():
-                reward += r
-                if clr:
-                    t.kill()
+        for _ in range(A_REPEAT):
+            state = np.array([])
+            for v in self.uavs:
+                s, _, _, _ = v.step(action)
                 state = np.concatenate((state, np.array(s)))
-            else:
-                # zeros nest state while alive==false
-                s0 = np.zeros_like(s)
-                state = np.concatenate((state, np.array(s0)))
-            tgts_status.append(t.is_alive())
+            
+            reward -= 0.2
+            # if self.uav.x>4000 and abs(self.uav.y)<1000:
+            #     reward += 1000
+            #     done = True
+            tgts_status = []
+
+            for t in self.targets:
+                s, r, clr, _ = t.step(self.uavs)
+                if t.is_alive():
+                    reward += r
+                    if clr:
+                        t.kill()
+                    state = np.concatenate((state, np.array(s)))
+                else:
+                    # zeros nest state while alive==false
+                    s0 = np.zeros_like(s)
+                    state = np.concatenate((state, np.array(s0)))
+                tgts_status.append(t.is_alive())
+                        
+            self.state = state.tolist()
+
+            # done judgement
+            # judge if all targets eliminated
+            all_tgts_clr = tgts_status.count(False) is len(self.targets)
+            
+            # judge if *ANY* drone fly Out-Of-Border(OOB)
+            OOBs = []
+            for v in self.uavs:
+                OOBs.append(abs(v.x)>ARENA_X_LEN or abs(v.y)>ARENA_Y_LEN)
+            any_uav_out = OOBs.count(True)>0
+
+            self.steps += 1
+            episode_len_exceed = True if self.steps>=self.max_eps_len else False
                     
-        self.state = state.tolist()
+            done = all_tgts_clr or any_uav_out or episode_len_exceed
 
-        # done judgement
-        # judge if all targets eliminated
-        all_tgts_clr = tgts_status.count(False) is len(self.targets)
-        
-        # judge if *ANY* drone fly Out-Of-Border(OOB)
-        OOBs = []
-        for v in self.uavs:
-            OOBs.append(abs(v.x)>ARENA_X_LEN or abs(v.y)>ARENA_Y_LEN)
-        any_uav_out = OOBs.count(True)>0
+            # uavs trajectories logging
+            self.vis.log(self.uavs, self.targets)
 
-        self.steps += 1
-        episode_len_exceed = True if self.steps>=self.max_eps_len else False
-                
-        done = all_tgts_clr or any_uav_out or episode_len_exceed
-
-        # uavs trajectories logging
-        self.vis.log(self.uavs, self.targets)
+            if done:
+                break
 
         return state, reward, done, {}
 
@@ -131,9 +138,7 @@ class StrikeEnv(gym.Env):
         pass
 
     def close(self):
-        #render
-        if RENDER:
-            self.vis.plot()
+        pass
 
 if __name__ == "__main__":
     env = StrikeEnv()
