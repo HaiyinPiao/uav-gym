@@ -132,6 +132,9 @@ class obstacle_t(entity_t):
 
     def is_alive(self):
         return self.alive
+    
+    def kill(self):
+        self.alive = False
 
 
 if __name__ == "__main__":

@@ -60,19 +60,18 @@ class StrikeEnv(gym.Env):
         #     done = True
         tgts_status = []
 
-
         for t in self.targets:
             s, r, clr, _ = t.step(self.uavs)
-            if t.is_alive:
+            if t.is_alive():
                 reward += r
                 if clr:
-                    t.is_alive = False
+                    t.kill()
                 state = np.concatenate((state, np.array(s)))
             else:
                 # zeros nest state while alive==false
                 s0 = np.zeros_like(s)
                 state = np.concatenate((state, np.array(s0)))
-            tgts_status.append(t.is_alive)
+            tgts_status.append(t.is_alive())
                     
         self.state = state.tolist()
 
