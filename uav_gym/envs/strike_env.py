@@ -43,10 +43,12 @@ class StrikeEnv(gym.Env):
         self.seed()
         self.state = None
 
+        self.max_eps_len = 2000
+        self.steps = 0
+
     
     def step(self, action):
         # self.state = self.uav.step(action)
-        done = False
         state = np.array([])
         for v in self.uavs:
             s, _, _, _ = v.step(action)
@@ -60,10 +62,10 @@ class StrikeEnv(gym.Env):
 
 
         for t in self.targets:
-            s, r, done, _ = t.step(self.uavs)
+            s, r, clr, _ = t.step(self.uavs)
             if t.is_alive:
                 reward += r
-                if done:
+                if clr:
                     t.is_alive = False
                 state = np.concatenate((state, np.array(s)))
             else:
@@ -83,8 +85,11 @@ class StrikeEnv(gym.Env):
         for v in self.uavs:
             OOBs.append(abs(v.x)>ARENA_X_LEN or abs(v.y)>ARENA_Y_LEN)
         any_uav_out = OOBs.count(True)>0
+
+        self.steps += 1
+        episode_len_exceed = True if self.steps>=self.max_eps_len else False
                 
-        done = all_tgts_clr or any_uav_out
+        done = all_tgts_clr or any_uav_out or episode_len_exceed
 
         # uavs trajectories logging
         self.vis.log(self.uavs, self.targets)
@@ -118,8 +123,8 @@ class StrikeEnv(gym.Env):
         state = np.concatenate((state, np.array(s)))
 
         self.state = state.tolist()
-
         self.vis = plot_t(self.uavs, self.targets)
+        self.steps = 0
 
         return state
     
