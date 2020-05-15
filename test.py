@@ -15,7 +15,6 @@ for _ in range(1):
         # print(observation.shape)
         r_e += reward
         if done:
-            
             print("done in step:", t)
             for t in env.targets:
                 print(t.alive)

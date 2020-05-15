@@ -1,12 +1,15 @@
 import math
 
 DEG2RAD = math.pi/180.0
+RAD2DEG = 180/math.pi
 ARENA_X_LEN = 10000.0
 ARENA_Y_LEN = 10000.0
 
 GRAVITY = 9.8
 TAU = 0.13
 
-RENDER = True
-
+RENDER = False
+MAX_EPS_LEN = 3000
 A_REPEAT = 100
+
+POS_FIXED = False

@@ -15,6 +15,10 @@ class entity_t():
         pass
     def is_alive(self):
         pass
+    def get_pos(self):
+        return np.array([self.x,self.y])
+    def get_r(self):
+        pass
 
 class uav_t(entity_t):
     def __init__(self):
@@ -25,7 +29,7 @@ class uav_t(entity_t):
         
         # state variables
         self.phi = 0.0
-        self.psi = 90.0*DEG2RAD
+        self.psi = 0.0*DEG2RAD
         self.phi_dot = 0.0
         self.psi_dot = 0.0
         self.x = 0#-ARENA_X_LEN/2.0+1000
@@ -75,7 +79,7 @@ class uav_t(entity_t):
 
         return (float(self.alive), self.phi, self.psi_dot, self.psi, self.x, self.y), reward, done, {}
 
-    def reset(self, phi=0.0, psi_dot=0.0, psi=90.0*DEG2RAD, x=0.0, y=0.0):
+    def reset(self, phi=0.0, psi_dot=0.0, psi=0.0*DEG2RAD, x=0.0, y=0.0):
         self.alive = True
         self.phi = phi
         self.psi_dot = psi_dot
@@ -92,6 +96,8 @@ class uav_t(entity_t):
 
     def is_alive(self):
         return self.alive
+    def get_r(self):
+        return 0.0
 
 class obstacle_t(entity_t):
     def __init__(self):
@@ -135,6 +141,8 @@ class obstacle_t(entity_t):
     
     def kill(self):
         self.alive = False
+    def get_r(self):
+        return self.r
 
 
 if __name__ == "__main__":
