@@ -131,29 +131,20 @@ class StrikeEnv(gym.Env):
             if done:
                 break
 
-        return state, reward, done, {}
+        return self.state, reward, done, {}
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed] 
 
     def reset(self):
-        # # self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(5,))
-        # # state variables
-        # self.phi = 0.0
-        # self.psi = 90.0*DEG2RAD
-        # self.psi_dot = 0.0
-        # self.x = 0#-ARENA_X_LEN/2.0+1000
-        # self.y = 0.0
-
-        # self.state = np.concatenate((self.state, np.array(s)))
         state = np.array([])
         for v in self.uavs:
             if POS_FIXED:
                 s = np.array(v.reset())
             else:
-                s = np.array(v.reset(x=np.random.randint(-ARENA_X_LEN/5.0,ARENA_X_LEN/5.0),y=np.random.randint(-ARENA_Y_LEN/5.0,ARENA_Y_LEN/5.0)))
-            state = np.concatenate((state, np.array(s)))         
+                s = np.array(v.reset(psi=np.random.randint(-3,3),x=np.random.randint(-ARENA_X_LEN/5.0,ARENA_X_LEN/5.0),y=np.random.randint(-ARENA_Y_LEN/5.0,ARENA_Y_LEN/5.0)))
+            state = np.concatenate((state, np.array(s)))
 
         if POS_FIXED:
             s = self.targets[0].reset(3000,3000,1000)
@@ -164,7 +155,7 @@ class StrikeEnv(gym.Env):
             state = np.concatenate((state, np.array(s)))
         else:
             for t in self.targets:
-                s = t.reset(np.random.randint(-ARENA_X_LEN/2.0,ARENA_X_LEN/2.0),np.random.randint(-ARENA_Y_LEN/2.0,ARENA_Y_LEN/2.0),1000)
+                s = t.reset(np.random.randint(-ARENA_X_LEN/3.0,ARENA_X_LEN/3.0),np.random.randint(-ARENA_Y_LEN/3.0,ARENA_Y_LEN/3.0),1000)
                 state = np.concatenate((state, np.array(s)))
 
         # relative observations
@@ -174,7 +165,7 @@ class StrikeEnv(gym.Env):
         self.vis = plot_t(self.uavs, self.targets)
         self.steps = 0
 
-        return state
+        return self.state
     
     def render(self, mode='human'):
         pass
