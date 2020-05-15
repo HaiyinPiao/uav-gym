@@ -18,8 +18,9 @@ class StrikeEnv(gym.Env):
         relative observation
     """
     def __init__(self):
-        self.uavs = [uav_t() for _ in range(1)]
-        self.targets = [obstacle_t() for _ in range(3)]
+        self.n_agents = 2
+        self.uavs = [uav_t() for _ in range(self.n_agents)]
+        self.targets = [obstacle_t() for _ in range(4)]
 
         uav_high = np.array([1.0,math.pi,
                          math.pi/2.0,
@@ -27,39 +28,31 @@ class StrikeEnv(gym.Env):
                          ARENA_X_LEN*10.0,
                          ARENA_Y_LEN*10.0],
                         dtype=np.float32)
-        # alive, x, y, r_lethal
-        tgt_high = np.array([1.0,
-                         ARENA_X_LEN*2.0,
-                         ARENA_Y_LEN*2.0,
-                         ARENA_Y_LEN],
-                        dtype=np.float32)
-        # IFF, AO, r, r_lethal
-        rel_high = np.array([1.0,
+
+        # alive, IFF, AO, r, r_lethal
+        rel_high = np.array([1.0,1.0,
                          math.pi,
                          ARENA_Y_LEN*2.0,
                          ARENA_Y_LEN*2.0],
                         dtype=np.float32)
 
         high = np.array([])
-        # uav and targets native observations
+        # uav native observations
         for v in self.uavs:
             high = np.concatenate((high, uav_high))
-        for t in self.targets:
-            high = np.concatenate((high, tgt_high))
-        # relative observation calculations
-        for v in self.uavs:
-            wingmans = copy.deepcopy(self.uavs)
-            wingmans.remove(wingmans[self.uavs.index(v)])
-            for _ in wingmans:
-                high = np.concatenate((high, rel_high))
-            for _ in self.targets:
-                high = np.concatenate((high, rel_high))
+            # relative observation calculations
+            for v in self.uavs:
+                wingmans = copy.deepcopy(self.uavs)
+                wingmans.remove(wingmans[self.uavs.index(v)])
+                for _ in wingmans:
+                    high = np.concatenate((high, rel_high))
+                for _ in self.targets:
+                    high = np.concatenate((high, rel_high))
                         
-        self.action_space = spaces.Discrete(len(self.uavs[0].avail_phi))
+        self.action_space = [spaces.Discrete(len(self.uavs[0].avail_phi)) for _ in range(self.n_agents)]
         self.observation_space = spaces.Box(-high, high, dtype=np.float32)
         self.seed()
         self.state = None
-
         self.steps = 0
 
     def _get_rel_states(self, state:np.array):
@@ -72,23 +65,16 @@ class StrikeEnv(gym.Env):
             for t in self.targets:
                 s = calc_rel_obs(v,t)
                 state = np.concatenate((state, np.array(s)))  
-        return state     
+        return state
 
-    def step(self, action):
+    def step(self, action:[]):
         # self.state = self.uav.step(action)
         reward = 0.0
         done = False
         
         for _ in range(A_REPEAT):
             state = np.array([])
-            for v in self.uavs:
-                s, _, _, _ = v.step(action)
-                state = np.concatenate((state, np.array(s)))
-            
             reward -= 0.1
-            # if self.uav.x>4000 and abs(self.uav.y)<1000:
-            #     reward += 1000
-            #     done = True
             tgts_status = []
 
             for t in self.targets:
@@ -97,15 +83,13 @@ class StrikeEnv(gym.Env):
                     reward += r
                     if clr:
                         t.kill()
-                    state = np.concatenate((state, np.array(s)))
-                else:
-                    # zeros nest state while alive==false
-                    s0 = np.zeros_like(s)
-                    state = np.concatenate((state, np.array(s0)))
                 tgts_status.append(t.is_alive())
 
-            # relative observations
-            state = self._get_rel_states(state)
+            for v,a in zip(self.uavs,action):
+                s, _, _, _ = v.step(a)
+                state = np.concatenate((state, np.array(s)))
+                # relative observations
+                state = self._get_rel_states(state)
                         
             self.state = state.tolist()
 
@@ -135,7 +119,7 @@ class StrikeEnv(gym.Env):
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
-        return [seed] 
+        return [seed]
 
     def reset(self):
         state = np.array([])
@@ -148,15 +132,15 @@ class StrikeEnv(gym.Env):
 
         if POS_FIXED:
             s = self.targets[0].reset(3000,3000,1000)
-            state = np.concatenate((state, np.array(s)))
+            # state = np.concatenate((state, np.array(s)))
             s = self.targets[1].reset(-3000,-3000,1000)
-            state = np.concatenate((state, np.array(s)))
+            # state = np.concatenate((state, np.array(s)))
             s = self.targets[2].reset(0,2000,1000)
-            state = np.concatenate((state, np.array(s)))
+            # state = np.concatenate((state, np.array(s)))
         else:
             for t in self.targets:
-                s = t.reset(np.random.randint(-ARENA_X_LEN/3.0,ARENA_X_LEN/3.0),np.random.randint(-ARENA_Y_LEN/3.0,ARENA_Y_LEN/3.0),1000)
-                state = np.concatenate((state, np.array(s)))
+                s = t.reset(np.random.randint(-ARENA_X_LEN/2.5,ARENA_X_LEN/2.5),np.random.randint(-ARENA_Y_LEN/2.5,ARENA_Y_LEN/2.5),500)
+                # state = np.concatenate((state, np.array(s)))
 
         # relative observations
         state = self._get_rel_states(state)

@@ -25,9 +25,9 @@ def calc_rel_obs(v:entity_t, t:entity_t):
         AO = calc_AO(v,t)
         r = calc_r(v,t)
         r_lethal = t.get_r()
-        state = (float(foe), AO, r, r_lethal)
+        state = (float(t.is_alive()),float(foe), AO, r, r_lethal)
     else:
-        state = (0.0,0.0,0.0,0.0)
+        state = (0.0,0.0,0.0,0.0,0.0)
     return state
 
 if __name__ == "__main__":
