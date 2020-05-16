@@ -106,14 +106,14 @@ class obstacle_t(entity_t):
         self.y = 0.0
         self.r = 0.0
     
-    def step(self, uavs:[]):
+    def step(self, v:uav_t):
         reward = 0.0
         done = False
-        for v in uavs:
-            if self.is_alive and self.is_in_range([v.x,v.y]):
-                reward += 500
-                # self.alive = False
-                done = True
+        # for v in uavs:
+        if self.is_alive and self.is_in_range([v.x,v.y]):
+            reward += 500
+            # self.alive = False
+            done = True
 
         return (float(self.alive), self.x, self.y, self.r), reward, done, {}
 

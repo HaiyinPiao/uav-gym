@@ -28,7 +28,6 @@ class StrikeEnv(gym.Env):
                          ARENA_X_LEN*10.0,
                          ARENA_Y_LEN*10.0],
                         dtype=np.float32)
-
         # alive, IFF, AO, r, r_lethal
         rel_high = np.array([1.0,1.0,
                          math.pi,
@@ -38,19 +37,19 @@ class StrikeEnv(gym.Env):
 
         high = np.array([])
         # uav native observations
+        # for v in self.uavs:
+        high = np.concatenate((high, uav_high))
+        # relative observation calculations
         for v in self.uavs:
-            high = np.concatenate((high, uav_high))
-            # relative observation calculations
-            for v in self.uavs:
-                wingmans = copy.deepcopy(self.uavs)
-                wingmans.remove(wingmans[self.uavs.index(v)])
-                for _ in wingmans:
-                    high = np.concatenate((high, rel_high))
-                for _ in self.targets:
-                    high = np.concatenate((high, rel_high))
+            wingmans = copy.deepcopy(self.uavs)
+            wingmans.remove(wingmans[self.uavs.index(v)])
+            for _ in wingmans:
+                high = np.concatenate((high, rel_high))
+            for _ in self.targets:
+                high = np.concatenate((high, rel_high))
                         
         self.action_space = [spaces.Discrete(len(self.uavs[0].avail_phi)) for _ in range(self.n_agents)]
-        self.observation_space = spaces.Box(-high, high, dtype=np.float32)
+        self.observation_space = [spaces.Box(-high, high, dtype=np.float32) for _ in range(self.n_agents)]
         self.seed()
         self.state = None
         self.steps = 0
@@ -69,51 +68,54 @@ class StrikeEnv(gym.Env):
 
     def step(self, action:[]):
         # self.state = self.uav.step(action)
-        reward = 0.0
-        done = False
+        state = [np.array([])] * self.n_agents
+        reward = [0.0] * self.n_agents
+        done = [False] * self.n_agents
         
         for _ in range(A_REPEAT):
-            state = np.array([])
-            reward -= 0.1
-            tgts_status = []
+            for i in range(self.n_agents):
+                reward[i] -= 0.1
+                tgts_status = []
 
-            for t in self.targets:
-                s, r, clr, _ = t.step(self.uavs)
-                if t.is_alive():
-                    reward += r
-                    if clr:
-                        t.kill()
-                tgts_status.append(t.is_alive())
+                for t in self.targets:
+                    s, r, clr, _ = t.step(self.uavs[i])
+                    if t.is_alive():
+                        reward[i] += r
+                        if clr:
+                            t.kill()
+                    tgts_status.append(t.is_alive())
 
-            for v,a in zip(self.uavs,action):
-                s, _, _, _ = v.step(a)
-                state = np.concatenate((state, np.array(s)))
+                # for v,a in zip(self.uavs,action):
+                # native observation
+                s, _, _, _ = v.step(action[i])
+                state[i] = np.concatenate((state[i], np.array(s)))
                 # relative observations
-                state = self._get_rel_states(state)
+                state[i] = self._get_rel_states(state[i])
+                
+                # TODO
+                self.state = state.tolist()
+
+                # done judgement
+                # judge if all targets eliminated
+                all_tgts_clr = tgts_status.count(False) is len(self.targets)
+                
+                # judge if *ANY* drone fly Out-Of-Border(OOB)
+                OOBs = []
+                for v in self.uavs:
+                    OOBs.append(abs(v.x)>ARENA_X_LEN or abs(v.y)>ARENA_Y_LEN)
+                any_uav_out = OOBs.count(True)>0
+                reward -= any_uav_out*200.0
+
+                self.steps += 1
+                episode_len_exceed = True if self.steps>=MAX_EPS_LEN else False
                         
-            self.state = state.tolist()
+                done = all_tgts_clr or any_uav_out or episode_len_exceed
 
-            # done judgement
-            # judge if all targets eliminated
-            all_tgts_clr = tgts_status.count(False) is len(self.targets)
-            
-            # judge if *ANY* drone fly Out-Of-Border(OOB)
-            OOBs = []
-            for v in self.uavs:
-                OOBs.append(abs(v.x)>ARENA_X_LEN or abs(v.y)>ARENA_Y_LEN)
-            any_uav_out = OOBs.count(True)>0
-            reward -= any_uav_out*200.0
+                # uavs trajectories logging
+                self.vis.log(self.uavs, self.targets)
 
-            self.steps += 1
-            episode_len_exceed = True if self.steps>=MAX_EPS_LEN else False
-                    
-            done = all_tgts_clr or any_uav_out or episode_len_exceed
-
-            # uavs trajectories logging
-            self.vis.log(self.uavs, self.targets)
-
-            if done:
-                break
+                if done:
+                    break
 
         return self.state, reward, done, {}
 
