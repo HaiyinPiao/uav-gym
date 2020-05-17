@@ -7,6 +7,7 @@ import matplotlib.patches as mpathes
 
 class entity_t():
     def __init__(self):
+        self.alive = True
         pass
     
     def step(self, action):
@@ -19,6 +20,8 @@ class entity_t():
         return np.array([self.x,self.y])
     def get_r(self):
         pass
+    def kill(self):
+        self.alive = False
 
 class uav_t(entity_t):
     def __init__(self):
@@ -76,8 +79,9 @@ class uav_t(entity_t):
         # self.y_traj.append(self.y)
         reward = 0.0
         done = False
+        state = (float(self.alive), self.phi, self.psi_dot, self.psi, self.x, self.y) if self.is_alive() else (0.0,0.0,0.0,0.0,0.0,0.0)
 
-        return (float(self.alive), self.phi, self.psi_dot, self.psi, self.x, self.y), reward, done, {}
+        return state, reward, done, {}
 
     def reset(self, phi=0.0, psi_dot=0.0, psi=0.0*DEG2RAD, x=0.0, y=0.0):
         self.alive = True
@@ -106,16 +110,17 @@ class obstacle_t(entity_t):
         self.y = 0.0
         self.r = 0.0
     
-    def step(self, v:uav_t):
-        reward = 0.0
+    def step(self, uavs:[]):
+        reward = [0.0] *len(uavs)
         done = False
-        # for v in uavs:
-        if self.is_alive and self.is_in_range([v.x,v.y]):
-            reward += 500
-            # self.alive = False
-            done = True
+        for v,i in zip(uavs,range(len(uavs))):
+            if self.is_alive and self.is_in_range([v.x,v.y]):
+                reward[i] += 500
+                # self.alive = False
+                done = True
+        state = (float(self.alive), self.x, self.y, self.r) if self.is_alive() else (0.0, 0.0, 0.0, 0.0)
 
-        return (float(self.alive), self.x, self.y, self.r), reward, done, {}
+        return state, reward, done, {}
 
     def reset(self, x:float, y:float, r:float):
         self.alive = True
@@ -139,8 +144,6 @@ class obstacle_t(entity_t):
     def is_alive(self):
         return self.alive
     
-    def kill(self):
-        self.alive = False
     def get_r(self):
         return self.r
 

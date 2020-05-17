@@ -18,9 +18,9 @@ class StrikeEnv(gym.Env):
         relative observation
     """
     def __init__(self):
-        self.n_agents = 2
+        self.n_agents = N_AGENTS
         self.uavs = [uav_t() for _ in range(self.n_agents)]
-        self.targets = [obstacle_t() for _ in range(4)]
+        self.targets = [obstacle_t() for _ in range(N_TARGETS)]
 
         uav_high = np.array([1.0,math.pi,
                          math.pi/2.0,
@@ -51,7 +51,7 @@ class StrikeEnv(gym.Env):
         self.action_space = [spaces.Discrete(len(self.uavs[0].avail_phi)) for _ in range(self.n_agents)]
         self.observation_space = [spaces.Box(-high, high, dtype=np.float32) for _ in range(self.n_agents)]
         self.seed()
-        self.state = None
+        self.state = [None] * self.n_agents
         self.steps = 0
 
     def _get_rel_states(self, state:np.array):
@@ -73,49 +73,61 @@ class StrikeEnv(gym.Env):
         done = [False] * self.n_agents
         
         for _ in range(A_REPEAT):
+            # calc uavs native observations
             for i in range(self.n_agents):
-                reward[i] -= 0.1
-                tgts_status = []
+                if self.uavs[i].is_alive():
+                    reward[i] -= 0.2
+                    # uav native observation
+                    s, _, _, _ = self.uavs[i].step(action[i])
+                    state[i] = np.concatenate((state[i], np.array(s)))
+                
+            # calc target status
+            for t in self.targets:
+                s, r, d, _ = t.step(self.uavs)
+                if t.is_alive():
+                    reward = [i + j for i, j in zip(reward, r)]
+                    if d:
+                        t.kill()
 
-                for t in self.targets:
-                    s, r, clr, _ = t.step(self.uavs[i])
-                    if t.is_alive():
-                        reward[i] += r
-                        if clr:
-                            t.kill()
-                    tgts_status.append(t.is_alive())
-
-                # for v,a in zip(self.uavs,action):
-                # native observation
-                s, _, _, _ = v.step(action[i])
-                state[i] = np.concatenate((state[i], np.array(s)))
-                # relative observations
+            # relative observations
+            for i in range(self.n_agents):
                 state[i] = self._get_rel_states(state[i])
-                
-                # TODO
-                self.state = state.tolist()
+            for i in range(self.n_agents): 
+                self.state[i] = state[i].tolist()
 
-                # done judgement
-                # judge if all targets eliminated
-                all_tgts_clr = tgts_status.count(False) is len(self.targets)
-                
-                # judge if *ANY* drone fly Out-Of-Border(OOB)
-                OOBs = []
-                for v in self.uavs:
-                    OOBs.append(abs(v.x)>ARENA_X_LEN or abs(v.y)>ARENA_Y_LEN)
-                any_uav_out = OOBs.count(True)>0
-                reward -= any_uav_out*200.0
+            # judge if all targets eliminated
+            all_tgts_clr = [False] * len(self.targets)
+            for i in range(len(self.targets)):
+                all_tgts_clr[i] = False if self.targets[i].is_alive() else True
+            level_clr = [True] * self.n_agents if all(all_tgts_clr) else [False] * self.n_agents 
+            
+            # judge if *ANY* drone fly Out-Of-Border(OOB)
+            uav_out = [False] * self.n_agents
+            for i in range(self.n_agents):
+                if self.uavs[i].is_alive() and (abs(self.uavs[i].x)>ARENA_X_LEN or abs(self.uavs[i].y)>ARENA_Y_LEN):
+                    self.uavs[i].kill()
+                    reward[i] -= 200.0
+                    uav_out[i] = True
 
-                self.steps += 1
-                episode_len_exceed = True if self.steps>=MAX_EPS_LEN else False
-                        
-                done = all_tgts_clr or any_uav_out or episode_len_exceed
+            # judge if uavs die(die condition indluding OOB).
+            uav_die = [False] * self.n_agents
+            for i in range(self.n_agents):
+                uav_die[i] = False if self.uavs[i].is_alive() else True
+            uav_die = [d or o for d, o in zip(uav_die, uav_out)]
 
-                # uavs trajectories logging
-                self.vis.log(self.uavs, self.targets)
+            self.steps += 1
+            # judge if expsode ended
+            episode_len_exceed = [True]*self.n_agents if self.steps>=MAX_EPS_LEN else [False]*self.n_agents
+                    
+            # all together
+            # done = level_clr or uav_die or episode_len_exceed
+            done = [c or d or e for c, d, e in zip(level_clr, uav_die, episode_len_exceed)]
 
-                if done:
-                    break
+            # uavs trajectories logging
+            self.vis.log(self.uavs, self.targets)
+
+            if all(done):
+                break
 
         return self.state, reward, done, {}
 
@@ -124,30 +136,28 @@ class StrikeEnv(gym.Env):
         return [seed]
 
     def reset(self):
-        state = np.array([])
-        for v in self.uavs:
+        state = [np.array([])] * self.n_agents
+        for i in range(self.n_agents):
             if POS_FIXED:
-                s = np.array(v.reset())
+                s = np.array(self.uavs[i].reset())
             else:
-                s = np.array(v.reset(psi=np.random.randint(-3,3),x=np.random.randint(-ARENA_X_LEN/5.0,ARENA_X_LEN/5.0),y=np.random.randint(-ARENA_Y_LEN/5.0,ARENA_Y_LEN/5.0)))
-            state = np.concatenate((state, np.array(s)))
+                s = np.array(self.uavs[i].reset(psi=np.random.randint(-3,3),x=np.random.randint(-ARENA_X_LEN/5.0,ARENA_X_LEN/5.0),y=np.random.randint(-ARENA_Y_LEN/5.0,ARENA_Y_LEN/5.0)))
+            state[i] = np.concatenate((state[i], np.array(s)))
 
         if POS_FIXED:
             s = self.targets[0].reset(3000,3000,1000)
-            # state = np.concatenate((state, np.array(s)))
             s = self.targets[1].reset(-3000,-3000,1000)
-            # state = np.concatenate((state, np.array(s)))
             s = self.targets[2].reset(0,2000,1000)
-            # state = np.concatenate((state, np.array(s)))
         else:
             for t in self.targets:
-                s = t.reset(np.random.randint(-ARENA_X_LEN/2.5,ARENA_X_LEN/2.5),np.random.randint(-ARENA_Y_LEN/2.5,ARENA_Y_LEN/2.5),500)
-                # state = np.concatenate((state, np.array(s)))
+                s = t.reset(np.random.randint(-ARENA_X_LEN/2.5,ARENA_X_LEN/2.5),np.random.randint(-ARENA_Y_LEN/2.5,ARENA_Y_LEN/2.5),800)
 
         # relative observations
-        state = self._get_rel_states(state)
+        for i in range(self.n_agents):
+            state[i] = self._get_rel_states(state[i])
+        for i in range(self.n_agents): 
+            self.state[i] = state[i].tolist()
 
-        self.state = state.tolist()
         self.vis = plot_t(self.uavs, self.targets)
         self.steps = 0
 
