@@ -10,6 +10,7 @@ for _ in range(1):
     for t in range(1000):
         action = [env.action_space[i].sample() for i in range(env.n_agents)]
         observation, reward, done, info = env.step(action)
+        print(len(observation[0]))
         r_e += sum(reward)
         if all(done):
             print("done in step:", t)

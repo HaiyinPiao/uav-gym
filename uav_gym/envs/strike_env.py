@@ -73,11 +73,11 @@ class StrikeEnv(gym.Env):
             done = [False] * self.n_agents
             # calc uavs native observations
             for i in range(self.n_agents):
+                s, _, _, _ = self.uavs[i].step(action[i])
+                # uav native observation
+                state[i] = np.concatenate((state[i], np.array(s)))
                 if self.uavs[i].is_alive():
                     reward[i] -= 0.1
-                    # uav native observation
-                    s, _, _, _ = self.uavs[i].step(action[i])
-                    state[i] = np.concatenate((state[i], np.array(s)))
                 
             # calc target status
             for t in self.targets:
