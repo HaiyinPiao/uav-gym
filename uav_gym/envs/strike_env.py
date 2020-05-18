@@ -40,13 +40,13 @@ class StrikeEnv(gym.Env):
         # for v in self.uavs:
         high = np.concatenate((high, uav_high))
         # relative observation calculations
-        for v in self.uavs:
-            wingmans = copy.deepcopy(self.uavs)
-            wingmans.remove(wingmans[self.uavs.index(v)])
-            for _ in wingmans:
-                high = np.concatenate((high, rel_high))
-            for _ in self.targets:
-                high = np.concatenate((high, rel_high))
+        # calc only for agent[0]
+        wingmans = copy.deepcopy(self.uavs)
+        wingmans.pop(-1)
+        for _ in wingmans:
+            high = np.concatenate((high, rel_high))
+        for _ in self.targets:
+            high = np.concatenate((high, rel_high))
                         
         self.action_space = [spaces.Discrete(len(self.uavs[0].avail_phi)) for _ in range(self.n_agents)]
         self.observation_space = [spaces.Box(-high, high, dtype=np.float32) for _ in range(self.n_agents)]
