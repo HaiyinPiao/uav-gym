@@ -54,29 +54,27 @@ class StrikeEnv(gym.Env):
         self.state = [None] * self.n_agents
         self.steps = 0
 
-    def _get_rel_states(self, state:np.array):
-        for v in self.uavs:
-            wingmans = copy.deepcopy(self.uavs)
-            wingmans.remove(wingmans[self.uavs.index(v)])
-            for u in wingmans:
-                s = calc_rel_obs(v,u)
-                state = np.concatenate((state, np.array(s)))
-            for t in self.targets:
-                s = calc_rel_obs(v,t)
-                state = np.concatenate((state, np.array(s)))  
+    def _get_rel_states(self, v:uav_t, state:np.array):
+        # for v in self.uavs:
+        wingmans = copy.deepcopy(self.uavs)
+        wingmans.remove(wingmans[self.uavs.index(v)])
+        for u in wingmans:
+            s = calc_rel_obs(v,u)
+            state = np.concatenate((state, np.array(s)))
+        for t in self.targets:
+            s = calc_rel_obs(v,t)
+            state = np.concatenate((state, np.array(s)))  
         return state
 
     def step(self, action:[]):
-        # self.state = self.uav.step(action)
-        state = [np.array([])] * self.n_agents
         reward = [0.0] * self.n_agents
-        done = [False] * self.n_agents
-        
         for _ in range(A_REPEAT):
+            state = [np.array([])] * self.n_agents
+            done = [False] * self.n_agents
             # calc uavs native observations
             for i in range(self.n_agents):
                 if self.uavs[i].is_alive():
-                    reward[i] -= 0.2
+                    reward[i] -= 0.1
                     # uav native observation
                     s, _, _, _ = self.uavs[i].step(action[i])
                     state[i] = np.concatenate((state[i], np.array(s)))
@@ -91,7 +89,7 @@ class StrikeEnv(gym.Env):
 
             # relative observations
             for i in range(self.n_agents):
-                state[i] = self._get_rel_states(state[i])
+                state[i] = self._get_rel_states(self.uavs[i], state[i])
             for i in range(self.n_agents): 
                 self.state[i] = state[i].tolist()
 
@@ -99,7 +97,7 @@ class StrikeEnv(gym.Env):
             all_tgts_clr = [False] * len(self.targets)
             for i in range(len(self.targets)):
                 all_tgts_clr[i] = False if self.targets[i].is_alive() else True
-            level_clr = [True] * self.n_agents if all(all_tgts_clr) else [False] * self.n_agents 
+            level_clr = [True] * self.n_agents if all(all_tgts_clr) else [False] * self.n_agents
             
             # judge if *ANY* drone fly Out-Of-Border(OOB)
             uav_out = [False] * self.n_agents
@@ -154,7 +152,7 @@ class StrikeEnv(gym.Env):
 
         # relative observations
         for i in range(self.n_agents):
-            state[i] = self._get_rel_states(state[i])
+            state[i] = self._get_rel_states(self.uavs[i], state[i])
         for i in range(self.n_agents): 
             self.state[i] = state[i].tolist()
 

@@ -14,5 +14,5 @@ A_REPEAT = 50
 
 POS_FIXED = False
 
-N_AGENTS = 2
+N_AGENTS = 3
 N_TARGETS = 4
