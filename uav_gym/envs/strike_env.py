@@ -127,7 +127,7 @@ class StrikeEnv(gym.Env):
 
             if all(done):
                 break
-
+        # print(self.state[1][4],self.state[1][5])
         return self.state, reward, done, {}
 
     def seed(self, seed=None):
@@ -149,7 +149,7 @@ class StrikeEnv(gym.Env):
             s = self.targets[2].reset(0,2000,1000)
         else:
             for t in self.targets:
-                s = t.reset(np.random.randint(-ARENA_X_LEN/2.5,ARENA_X_LEN/2.5),np.random.randint(-ARENA_Y_LEN/2.5,ARENA_Y_LEN/2.5),800)
+                s = t.reset(np.random.randint(-ARENA_X_LEN/2.5,ARENA_X_LEN/2.5),np.random.randint(-ARENA_Y_LEN/2.5,ARENA_Y_LEN/2.5),1500)
 
         # relative observations
         for i in range(self.n_agents):
