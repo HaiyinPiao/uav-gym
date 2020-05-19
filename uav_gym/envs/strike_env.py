@@ -53,6 +53,7 @@ class StrikeEnv(gym.Env):
         self.seed()
         self.state = [None] * self.n_agents
         self.steps = 0
+        self.render = RENDER
 
     def _get_rel_states(self, v:uav_t, state:np.array):
         # for v in self.uavs:
