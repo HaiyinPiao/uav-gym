@@ -1,4 +1,5 @@
 from .strike_args import *
+from .math import *
 import numpy as np
 
 # from mpl_toolkits.mplot3d import axes3d
@@ -72,6 +73,8 @@ class uav_t(entity_t):
 
         self.psi_dot = (GRAVITY/self.v)*math.tan(self.phi)
         self.psi += self.psi_dot*TAU
+        self.psi = clip_psi(self.psi)
+        assert(abs(self.psi)<=math.pi)
         self.x += self.v*math.sin(self.psi)*TAU
         self.y += self.v*math.cos(self.psi)*TAU
         # print(self.x, self.y)
@@ -109,8 +112,14 @@ class obstacle_t(entity_t):
         self.x = 0.0
         self.y = 0.0
         self.r = 0.0
+        # self.psi = 0.0
+        # self.v = 10.0
     
     def step(self, uavs:[]):
+
+        # self.x += self.v*math.sin(self.psi)*TAU
+        # self.y += self.v*math.cos(self.psi)*TAU
+
         reward = [0.0] *len(uavs)
         done = False
         for v,i in zip(uavs,range(len(uavs))):
@@ -133,7 +142,7 @@ class obstacle_t(entity_t):
         return self.state
 
     def is_movable(self):
-        return False
+        return True
 
     def is_in_range(self, pos:[]):
         assert(len(pos)==2)

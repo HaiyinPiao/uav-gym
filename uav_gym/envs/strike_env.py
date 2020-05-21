@@ -78,7 +78,7 @@ class StrikeEnv(gym.Env):
                 # uav native observation
                 state[i] = np.concatenate((state[i], np.array(s)))
                 if self.uavs[i].is_alive():
-                    reward[i] -= 0.1
+                    reward[i] -= 0.2
                 
             # calc target status
             for t in self.targets:
@@ -123,7 +123,9 @@ class StrikeEnv(gym.Env):
             done = [c or d or e for c, d, e in zip(level_clr, uav_die, episode_len_exceed)]
 
             # uavs trajectories logging
-            self.vis.log(self.uavs, self.targets)
+            self.vis.log_uavs(self.uavs)
+            # if self.steps%200==0:
+            #     self.vis.log_tgts(self.targets)
 
             if all(done):
                 break
@@ -149,7 +151,7 @@ class StrikeEnv(gym.Env):
             s = self.targets[2].reset(0,2000,1000)
         else:
             for t in self.targets:
-                s = t.reset(np.random.randint(-ARENA_X_LEN/2.5,ARENA_X_LEN/2.5),np.random.randint(-ARENA_Y_LEN/2.5,ARENA_Y_LEN/2.5),1500)
+                s = t.reset(np.random.randint(-ARENA_X_LEN/2.5,ARENA_X_LEN/2.5),np.random.randint(-ARENA_Y_LEN/2.5,ARENA_Y_LEN/2.5),800)
 
         # relative observations
         for i in range(self.n_agents):
@@ -159,6 +161,8 @@ class StrikeEnv(gym.Env):
 
         self.vis = plot_t(self.uavs, self.targets)
         self.steps = 0
+        
+        self.vis.log_tgts(self.targets)
 
         return self.state
     

@@ -1,11 +1,14 @@
 import math
+from .math import *
 import numpy as np
 import cmath
 from .entity import *
 
 
 def calc_vec_angle(v0, v1):
-    return math.atan2(v1[1], v1[0]) - math.atan2(v0[1], v0[0])
+    ang = math.atan2(v1[1], v1[0]) - math.atan2(v0[1], v0[0])
+    ang = clip_psi(ang)
+    return ang
 
 def calc_AO(v:uav_t, t:entity_t):
     v0 = cmath.rect(1.0, v.psi)
